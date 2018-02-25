@@ -1,17 +1,22 @@
 {
   "name": "serverless-api-handlers",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Wrappers for agnostically responding to serverless API calls",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "author": "Paul Lessing <paul@paullessing.com>",
   "license": "MIT",
-  "devDependencies": {
+  "scripts": {
+    "build": "yarn tsc"
+  },
+  "dependencies": {
     "@types/aws-lambda": "^0.0.32",
     "@types/aws-sdk": "^2.7.0",
     "@types/body-parser": "^1.16.8",
     "@types/express": "^4.11.1",
-    "@types/node": "^9.4.6",
+    "@types/node": "^9.4.6"
+  },
+  "devDependencies": {
     "typescript": "^2.7.2"
   }
 }
