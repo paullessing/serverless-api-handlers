@@ -1,48 +1,56 @@
-import { HandlerRequest, HandlerResponse, HandlerWrapper, RequestHandler } from './handler-wrapper.interface';
+import { HandlerConfig, HandlerRequest, HandlerResponse, HandlerWrapper, RequestHandler } from './handler-wrapper.interface';
 import { APIGatewayEvent, Context, Callback, APIGatewayProxyHandler } from 'aws-lambda';
 import * as querystring from 'querystring';
 
 export class AwsHandlerWrapper implements HandlerWrapper<APIGatewayProxyHandler> {
-  public wrap(handler: RequestHandler): APIGatewayProxyHandler {
+  public wrap(handler: RequestHandler, config: HandlerConfig = {}): APIGatewayProxyHandler {
     return (event: APIGatewayEvent, context: Context, callback: Callback) => {
       console.log('Handling request', event.headers);
 
+      const complete = (data: HandlerResponse) => {
+        const fullData = { ...data };
+        if (config.cors) {
+          fullData.headers = { ...fullData.headers, ...{
+            'Access-Control-Allow-Origin': typeof config.cors === 'string' ? config.cors : '*'
+          }};
+        }
+
+        callback(null, fullData);
+      };
+
       const request = this.convertRequest(event);
 
-      return Promise.resolve()
-        .then(() => {
-          return new Promise<any>((resolve, reject) => {
-            const done = (response?: HandlerResponse) => {
-              resolve(response);
-            };
-            try {
-              const result = handler(request, done);
-              if (result && result.hasOwnProperty('then')) {
-                (result as Promise<HandlerResponse>).then(resolve, reject);
-              } else {
-                resolve(result);
-              }
-            } catch (e) {
-              reject(e);
-            }
-          });
-        })
+      return new Promise<any>((resolve, reject) => {
+        const done = (response?: HandlerResponse) => {
+          resolve(response);
+        };
+        try {
+          const result = handler(request, done);
+          if (result && result.hasOwnProperty('then')) {
+            (result as Promise<HandlerResponse>).then(resolve, reject);
+          } else {
+            resolve(result);
+          }
+        } catch (e) {
+          reject(e);
+        }
+      })
         .then((result: HandlerResponse) => {
           console.log('Success', result);
           if (result && result.statusCode) {
-            callback(null, result);
+            complete(result);
           } else if (result) {
-            callback(null, { statusCode: 200, body: JSON.stringify(result) });
+            complete({ statusCode: 200, body: JSON.stringify(result) });
           } else {
-            callback(null, { statusCode: 204 });
+            complete({ statusCode: 204 });
           }
         }).catch((e) => {
           console.log('Failure', e);
           if (e.statusCode) {
-            callback(null, e);
+            complete(e);
           } else {
             console.log('Unhandled exeption:', e);
-            callback(null, { statusCode: 500, body: JSON.stringify(e) });
+            complete({ statusCode: 500, body: JSON.stringify(e) });
           }
         });
     }

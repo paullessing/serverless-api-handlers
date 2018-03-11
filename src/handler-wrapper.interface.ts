@@ -12,13 +12,18 @@ export interface HandlerRequest<B = any> {
 }
 
 export type RequestHandler =
-  (request: HandlerRequest, done: (response?: HandlerResponse) => void) => void | HandlerResponse | Promise<HandlerResponse>;
+  (request: HandlerRequest, done?: (response?: HandlerResponse) => void) => void | HandlerResponse | Promise<HandlerResponse>;
 
 export interface HandlerResponse {
   statusCode: number;
   body?: string;
+  headers?: { [key: string]: string };
+}
+
+export interface HandlerConfig {
+  cors?: string | boolean;
 }
 
 export interface HandlerWrapper<T> {
-  wrap(handler: RequestHandler): T;
+  wrap(handler: RequestHandler, config?: HandlerConfig): T;
 }
