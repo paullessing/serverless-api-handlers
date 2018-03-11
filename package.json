@@ -1,6 +1,6 @@
 {
   "name": "serverless-api-handlers",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Wrappers for agnostically responding to serverless API calls",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
