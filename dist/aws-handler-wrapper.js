@@ -12,50 +12,57 @@ var querystring = require("querystring");
 var AwsHandlerWrapper = /** @class */ (function () {
     function AwsHandlerWrapper() {
     }
-    AwsHandlerWrapper.prototype.wrap = function (handler) {
+    AwsHandlerWrapper.prototype.wrap = function (handler, config) {
         var _this = this;
+        if (config === void 0) { config = {}; }
         return function (event, context, callback) {
             console.log('Handling request', event.headers);
+            var complete = function (data) {
+                var fullData = __assign({}, data);
+                if (config.cors) {
+                    fullData.headers = __assign({}, fullData.headers, {
+                        'Access-Control-Allow-Origin': typeof config.cors === 'string' ? config.cors : '*'
+                    });
+                }
+                callback(null, fullData);
+            };
             var request = _this.convertRequest(event);
-            return Promise.resolve()
-                .then(function () {
-                return new Promise(function (resolve, reject) {
-                    var done = function (response) {
-                        resolve(response);
-                    };
-                    try {
-                        var result = handler(request, done);
-                        if (result && result.hasOwnProperty('then')) {
-                            result.then(resolve, reject);
-                        }
-                        else {
-                            resolve(result);
-                        }
+            return new Promise(function (resolve, reject) {
+                var done = function (response) {
+                    resolve(response);
+                };
+                try {
+                    var result = handler(request, done);
+                    if (result && result.hasOwnProperty('then')) {
+                        result.then(resolve, reject);
                     }
-                    catch (e) {
-                        reject(e);
+                    else {
+                        resolve(result);
                     }
-                });
+                }
+                catch (e) {
+                    reject(e);
+                }
             })
                 .then(function (result) {
                 console.log('Success', result);
                 if (result && result.statusCode) {
-                    callback(null, result);
+                    complete(result);
                 }
                 else if (result) {
-                    callback(null, { statusCode: 200, body: JSON.stringify(result) });
+                    complete({ statusCode: 200, body: JSON.stringify(result) });
                 }
                 else {
-                    callback(null, { statusCode: 204 });
+                    complete({ statusCode: 204 });
                 }
             }).catch(function (e) {
                 console.log('Failure', e);
                 if (e.statusCode) {
-                    callback(null, e);
+                    complete(e);
                 }
                 else {
                     console.log('Unhandled exeption:', e);
-                    callback(null, { statusCode: 500, body: JSON.stringify(e) });
+                    complete({ statusCode: 500, body: JSON.stringify(e) });
                 }
             });
         };

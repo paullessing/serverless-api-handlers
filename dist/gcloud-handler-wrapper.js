@@ -12,10 +12,14 @@ var querystring = require("querystring");
 var GcloudHandlerWrapper = /** @class */ (function () {
     function GcloudHandlerWrapper() {
     }
-    GcloudHandlerWrapper.prototype.wrap = function (handler) {
+    GcloudHandlerWrapper.prototype.wrap = function (handler, config) {
         var _this = this;
+        if (config === void 0) { config = {}; }
         return function (req, response) {
             var request = _this.convertRequest(req);
+            if (config.cors) {
+                response.setHeader('Access-Control-Allow-Origin', typeof config.cors === 'string' ? config.cors : '*');
+            }
             return Promise.resolve()
                 .then(function () {
                 return new Promise(function (resolve, reject) {
@@ -41,7 +45,11 @@ var GcloudHandlerWrapper = /** @class */ (function () {
                 .then(function (result) {
                 console.log('Success', result);
                 if (result && result.statusCode) {
-                    response.status(result.statusCode).send(result.body).end();
+                    response.status(result.statusCode);
+                    if (result.headers) {
+                        _this.sendHeaders(response, result.headers);
+                    }
+                    response.send(result.body).end();
                 }
                 else if (result) {
                     response.status(200).send(JSON.stringify(result)).end();
@@ -52,7 +60,11 @@ var GcloudHandlerWrapper = /** @class */ (function () {
             }).catch(function (e) {
                 console.log('Failure', e);
                 if (e.statusCode) {
-                    response.status(e.statusCode).send(e.body).end();
+                    response.status(e.statusCode);
+                    if (e.headers) {
+                        _this.sendHeaders(response, e.headers);
+                    }
+                    response.send(e.body).end();
                 }
                 else {
                     console.log('Unhandled exeption:', e);
@@ -73,6 +85,11 @@ var GcloudHandlerWrapper = /** @class */ (function () {
             queryParameters: querystring.parse(request.query) || {}
         };
         return internalRequest;
+    };
+    GcloudHandlerWrapper.prototype.sendHeaders = function (response, headers) {
+        Object.keys(headers).forEach(function (header) {
+            response.setHeader(header, headers[header]);
+        });
     };
     return GcloudHandlerWrapper;
 }());
