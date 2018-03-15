@@ -24,6 +24,6 @@ export interface HandlerConfig {
   cors?: string | boolean;
 }
 
-export interface HandlerWrapper<T> {
+export interface HandlerWrapper<T = any> {
   wrap(handler: RequestHandler, config?: HandlerConfig): T;
 }
